@@ -1,12 +1,15 @@
 [TABLE]BINI
 BUS.cpp|BI.cpp|sourcecode|-1|2024-01-01
 re.rct|re.rct|rct|-1|2024-01-01
+pe.js|storage/BINI/pe.js|js|55|2024-01-01
+newTest.py|storage/BINI/newTest.py|py|24|2026-09-04
 [TABLE]LISA
 MIC.mp4|MIC.mp4|mp4|-1|2024-01-01
 misc.txt|misc.txt|txt|-1|2024-01-01
 [TABLE]MIJA
 te.txt|te.txt|txt|-1|2024-01-01
 tr.csv|tr.csv|csv|-1|2024-01-01
+pr.md|storage/MIJA/pr.md|md|49|2024-01-01
 [TABLE]MIKA
 tpr.txt|tpr.txt|txt|-1|2024-01-01
 [TABLE]files
