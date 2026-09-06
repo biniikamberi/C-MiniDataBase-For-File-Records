@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 
+
 #include "SaveFile.h"
 using std::cout;
 using std::cin;
@@ -35,7 +36,7 @@ long long getFileSize(std::string path){
 
 std::string getFileExtension(std::string& filename){
     if(filename.empty()){
-        throw std::invalid_argument("FILE NOT FOUND");
+        return "ERROR EXTENSION TYPE\n";
     }
     size_t dotPos = filename.find_last_of(".");
     if(dotPos == std::string::npos){
@@ -59,7 +60,11 @@ void help(){
     cout<<"|\n"
     <<"#CREATE TABLE -create a table [any-name] of File Database\n"
     <<"#ADD -adds a file to Database,ADD [tablename] [_____.(musthaveExtension)]\n"
+    <<"#SHOW TABLES -shows all tables in the DataBase\n"
     <<"#SHOW ALL -shows all data to availabe Database,SHOW ALL [tablename]\n"
+    <<"#VIEW -views a file inside the Database,VIEW [tablename] [filename]\n"
+    <<"OPEN -opens a file inside the Database,OPEN [tablename] [filename]\n"
+    <<"EDIT -Edits/Opens a file inside The VSCODE EDITOR,EDIT [tablename] [filename] --MAYBE IN THE FUTURE I WILL UPDATE IT FOR ANY IDE BUT FOR NOW IT'S JUST FOR VSCODE\n"
     <<"#FIND && |FIND WHERE -Find if a file is in Database,Can be used Very Flexilibile like an if Statement\nFIND WHERE [tablename] [field(ex, filename,filetype,etc) [operation] [value(MUST  BE INT)]]\n"
     <<"#EXIT SAVE -Saves The Data in a .txt file extension\n"
     <<"---ADDITIONAL COMMANDS CAN BE USED OR|AND TO COMBINE MULTIPLE CONDITIONS---\n"
@@ -131,10 +136,10 @@ void ClearScreenAuto(){
 void ClearScreenBT(){
 #ifdef _WIN32    
     system("cls");
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 #else
     system("clear");
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 #endif    
 }
 
@@ -189,7 +194,7 @@ std::string getDefaultContent(const std::string& extension){
 int main(){
     ClearScreenAuto();
     std::map<std::string, std::vector<FileRecord>> database;
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 
     database["files"] = std::vector<FileRecord>{};
     loadFromDataBase(database,"database.txt");
@@ -245,6 +250,16 @@ int main(){
         else if(commands == "clear" || commands == "cls" || commands == "CLS" || commands == "CLEAR"){
             ClearScreenBT();
         }
+        else if(commands == "SHOW TABLES" || commands == "show tables" || 
+            commands == "SHOW TABLE" || commands == "show table"){
+            if(database.empty()){
+                cout << "Theres No Table inside the Database!\n";
+            } else {
+                for(const auto& tablePair : database){
+                    cout << "- " << tablePair.first << "\n";
+                }
+            }
+        }
         else if(commands.substr(0,12) == "CREATE TABLE" || commands.substr(0,12) == "create table"){
             std::stringstream ss(commands);
             std::string keyword1, keyword2, tableName;
@@ -282,7 +297,7 @@ int main(){
             std::string storageDir = "storage/" + tablename;
             fs::create_directories(storageDir);
             std::string filePath = storageDir + "/" + filename;
-            if(fs::exists(filePath)){
+            if(fs::exists(filename)){
                 fs::copy_file(filename, filePath, fs::copy_options::overwrite_existing);
                 cout << "File " << filename << " already exists in table " << tablename << ". Overwriting.\n";
             }else{
@@ -299,6 +314,96 @@ int main(){
             newRecord.dataAdded = getCurrentDate();
             database[tablename].push_back(newRecord);
             cout << "Added " << filename << " to " << tablename << "\n";
+        }
+        else if(commands.substr(0,4) == "VIEW" || commands.substr(0,4) == "view"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record: database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            std::ifstream inFile(trgtPath);
+            if(!inFile.is_open()){
+                cout<<"FAILED TO OPEN FILE: "<<trgtPath<<"\n";
+                continue;
+            }
+            cout<<"---"<<filename<<"---\n\n";
+            std::string line;
+            while(std::getline(inFile, line)){
+                cout<<line<<"\n";
+            }
+            inFile.close();
+            cout<<"-------------\n";
+        }
+        else if(commands.substr(0,4) == "OPEN" || commands.substr(0,4) == "open"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record:  database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            cout<<"Opening file: "<<filename<<" from table: "<<tablename<<".......\n";
+            #ifdef _WIN32
+                std::string commands = "start \"\" \"" + trgtPath + "\"";
+                system(commands.c_str());
+            #else
+                std::string commands = "xdg-open \"" + trgtPath + "\"";
+                system(commands.c_str());
+            #endif
+            cout<<"Succesfully found and opened file: "<<filename<<" from table: "<<tablename<<"\n";    
+        }
+        else if(commands.substr(0,4) == "EDIT" || commands.substr(0,4) == "edit"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record: database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found =true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            std::string command = "code \"" + trgtPath + "\"";
+            system(command.c_str());
         }
         else if(commands.substr(0,10) == "FIND WHERE" || commands.substr(0,10) == "find where"){
             std::stringstream ss(commands);
