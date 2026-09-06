@@ -8,11 +8,12 @@
 #include <fstream>
 #include <filesystem>
 
+
 #include "SaveFile.h"
 using std::cout;
 using std::cin;
 namespace  fs = std::filesystem; //short alias
-
+#include <ctime>
 struct FileRecord{
 std::string fileName;
 std::string filePath;
@@ -20,20 +21,22 @@ std::string fileType;
 long long   fileSize;
 std::string dataAdded;
 
+
 long long getFileSize(std::string path){
     if(path.empty()){
-        throw std::invalid_argument("FILE NOT FOUND");    
+        return -1;
     }
-    std::ifstream file(path);
+    std::ifstream file(path, std::ios::binary);
     if(!file.is_open()){
-        //FIX IT LATER  AT THE END  WITH STD::RUNTIME 
+        return -1;
     }
     file.seekg(0, std::ios::end);
     return file.tellg();
 }
+
 std::string getFileExtension(std::string& filename){
     if(filename.empty()){
-        throw std::invalid_argument("FILE NOT FOUND");
+        return "ERROR EXTENSION TYPE\n";
     }
     size_t dotPos = filename.find_last_of(".");
     if(dotPos == std::string::npos){
@@ -57,7 +60,11 @@ void help(){
     cout<<"|\n"
     <<"#CREATE TABLE -create a table [any-name] of File Database\n"
     <<"#ADD -adds a file to Database,ADD [tablename] [_____.(musthaveExtension)]\n"
+    <<"#SHOW TABLES -shows all tables in the DataBase\n"
     <<"#SHOW ALL -shows all data to availabe Database,SHOW ALL [tablename]\n"
+    <<"#VIEW -views a file inside the Database,VIEW [tablename] [filename]\n"
+    <<"OPEN -opens a file inside the Database,OPEN [tablename] [filename]\n"
+    <<"EDIT -Edits/Opens a file inside The VSCODE EDITOR,EDIT [tablename] [filename] --MAYBE IN THE FUTURE I WILL UPDATE IT FOR ANY IDE BUT FOR NOW IT'S JUST FOR VSCODE\n"
     <<"#FIND && |FIND WHERE -Find if a file is in Database,Can be used Very Flexilibile like an if Statement\nFIND WHERE [tablename] [field(ex, filename,filetype,etc) [operation] [value(MUST  BE INT)]]\n"
     <<"#EXIT SAVE -Saves The Data in a .txt file extension\n"
     <<"---ADDITIONAL COMMANDS CAN BE USED OR|AND TO COMBINE MULTIPLE CONDITIONS---\n"
@@ -111,6 +118,14 @@ while(std::getline(inFile, line)){
 }
 }
 
+std::string getCurrentDate(){
+    std::time_t now = time(0);
+    tm* localTime = std::localtime(&now);
+    char buffer[11];
+    std::strftime(buffer,sizeof(buffer),"%Y-%m-%d",localTime);
+    return std::string(buffer);
+}
+
 void ClearScreenAuto(){
 #ifdef _WIN32    
     system("cls");
@@ -121,17 +136,65 @@ void ClearScreenAuto(){
 void ClearScreenBT(){
 #ifdef _WIN32    
     system("cls");
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 #else
     system("clear");
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 #endif    
 }
+
+std::string getDefaultContent(const std::string& extension){
+    if(extension == "txt")return "New Text File";
+    else if(extension == "cpp")return "#include <iostream>\n\nint main(){\n    std::cout << \"Hello, World!\" << std::endl;\n    return 0;\n}\n";
+    else if(extension == "py")return "print(\"Hello, World!\")\n";
+    else if(extension == "html")return "<!DOCTYPE html>\n<html>\n<head>\n    <title>New HTML File</title>\n</head>\n<body>\n\n</body>\n</html>\n";
+    else if(extension == "css")return "/* New CSS File */\nbody {\n    margin: 0;\n    padding: 0;\n}\n";
+    else if(extension == "js")return "// New JavaScript File\nconsole.log(\"Hello, World!\");\n";
+    else if(extension == "json")return "{\n    \"key\": \"value\"\n}\n";
+    else if(extension == "md")return "# New Markdown File\n\nWrite your content here.\n";
+    else if(extension == "java")return "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}\n";
+    else if(extension == "c")return "#include <stdio.h>\n\nint main() {\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n";
+    else if(extension == "cs")return "using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Hello, World!\");\n    }\n}\n";
+    else if(extension == "rb")return "puts \"Hello, World!\"\n";
+    else if(extension == "php")return "<?php\n\necho \"Hello, World!\";\n\n?>\n";
+    else if(extension == "xml")return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>\n</root>\n";
+    else if(extension == "sh")return "#!/bin/bash\n\necho \"Hello, World!\"\n";
+    else if(extension == "bat")return "@echo off\n\necho Hello, World!\npause\n";
+    else if(extension == "go")return "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello, World!\")\n}\n";
+    else if(extension == "rs")return "fn main() {\n    println!(\"Hello, World!\");\n}\n";
+    else if(extension == "kt")return "fun main() {\n    println(\"Hello, World!\")\n}\n";
+    else if(extension == "swift")return "import Foundation\n\nprint(\"Hello, World!\")\n";
+    else if(extension == "ts")return "console.log(\"Hello, World!\");\n";
+    else if(extension == "dart")return "void main() {\n    print('Hello, World!');\n}\n";
+    else if(extension == "lua")return "print(\"Hello, World!\")\n";
+    else if(extension == "r")return "cat(\"Hello, World!\\n\")\n";
+    else if(extension == "sql")return "-- New SQL File\n-- Write your SQL queries here.\n";
+    else if(extension == "bat")return "@echo off\n\necho Hello, World!\npause\n";
+    else if(extension == "ps1")return "Write-Host \"Hello, World!\"\n";
+    else if(extension == "pl")return "print \"Hello, World!\\n\";\n";
+    else if(extension == "asm")return "section .data\n    msg db 'Hello, World!',0\n\nsection .text\n    global _start\n\n_start:\n    mov edx, 13\n    mov ecx, msg\n    mov ebx, 1\n    mov eax, 4\n    int 0x80\n    mov eax, 1\n    int 0x80\n";
+    else if(extension == "vbs")return "MsgBox \"Hello, World!\"\n";
+    else if(extension == "f90")return "program hello\n    print *, \"Hello, World!\"\nend program hello\n";
+    else if(extension == "doc")return "This is a new Word document.\n";
+    else if(extension == "docx")return "This is a new Word document.\n";
+    else if(extension == "xls")return "This is a new Excel spreadsheet.\n";
+    else if(extension == "xlsx")return "This is a new Excel spreadsheet.\n";
+    else if(extension == "ppt")return "This is a new PowerPoint presentation.\n";
+    else if(extension == "pptx")return "This is a new PowerPoint presentation.\n";
+    else if(extension == "odt")return "This is a new OpenDocument text file.\n";
+    else if(extension == "ods")return "This is a new OpenDocument spreadsheet file.\n";
+    else if(extension == "odp")return "This is a new OpenDocument presentation file.\n";
+    else if(extension == "epub")return "This is a new EPUB e-book file.\n";
+    else if(extension == "mobi")return "This is a new MOBI e-book file.\n";
+    else if(extension == "azw3")return "This is a new AZW3 e-book file.\n";
+    return " ";
+}
+
 
 int main(){
     ClearScreenAuto();
     std::map<std::string, std::vector<FileRecord>> database;
-    cout<<"\033[1;32mMiniDataC v1.0\033[0m\n";
+    cout<<"\033[1;32mFSQL_C v1.21\033[0m\n";
 
     database["files"] = std::vector<FileRecord>{};
     loadFromDataBase(database,"database.txt");
@@ -187,6 +250,16 @@ int main(){
         else if(commands == "clear" || commands == "cls" || commands == "CLS" || commands == "CLEAR"){
             ClearScreenBT();
         }
+        else if(commands == "SHOW TABLES" || commands == "show tables" || 
+            commands == "SHOW TABLE" || commands == "show table"){
+            if(database.empty()){
+                cout << "Theres No Table inside the Database!\n";
+            } else {
+                for(const auto& tablePair : database){
+                    cout << "- " << tablePair.first << "\n";
+                }
+            }
+        }
         else if(commands.substr(0,12) == "CREATE TABLE" || commands.substr(0,12) == "create table"){
             std::stringstream ss(commands);
             std::string keyword1, keyword2, tableName;
@@ -213,24 +286,124 @@ int main(){
                  }
             }
         }
-
         else if(commands.substr(0, 3) == "ADD" || commands.substr(0,3) == "add"){
             std::stringstream ss(commands);
-            std::string keyword, tableName, filename;
-            ss >> keyword >> tableName >> filename;
-
-            if(database.find(tableName) == database.end()){
-                cout << "No such table: " << tableName << "\n";
-            } else {
-                FileRecord newRecord;
-                newRecord.fileName = filename;
-                newRecord.filePath = filename;
-                newRecord.fileType = newRecord.getFileExtension(filename);
-                newRecord.fileSize = newRecord.getFileSize(newRecord.filePath);
-                newRecord.dataAdded = "2024-01-01";
-                database[tableName].push_back(newRecord);
-                cout << "Added " << filename << " to " << tableName << "\n";
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
             }
+            std::string storageDir = "storage/" + tablename;
+            fs::create_directories(storageDir);
+            std::string filePath = storageDir + "/" + filename;
+            if(fs::exists(filename)){
+                fs::copy_file(filename, filePath, fs::copy_options::overwrite_existing);
+                cout << "File " << filename << " already exists in table " << tablename << ". Overwriting.\n";
+            }else{
+                    FileRecord temp;
+                    std::string ext = temp.getFileExtension(filename);
+                    std::ofstream outFile(filePath);
+                    outFile << getDefaultContent(ext);
+            }
+            FileRecord newRecord;
+            newRecord.fileName = filename;
+            newRecord.filePath = filePath;
+            newRecord.fileType = newRecord.getFileExtension(filename);
+            newRecord.fileSize = newRecord.getFileSize(newRecord.filePath);
+            newRecord.dataAdded = getCurrentDate();
+            database[tablename].push_back(newRecord);
+            cout << "Added " << filename << " to " << tablename << "\n";
+        }
+        else if(commands.substr(0,4) == "VIEW" || commands.substr(0,4) == "view"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record: database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            std::ifstream inFile(trgtPath);
+            if(!inFile.is_open()){
+                cout<<"FAILED TO OPEN FILE: "<<trgtPath<<"\n";
+                continue;
+            }
+            cout<<"---"<<filename<<"---\n\n";
+            std::string line;
+            while(std::getline(inFile, line)){
+                cout<<line<<"\n";
+            }
+            inFile.close();
+            cout<<"-------------\n";
+        }
+        else if(commands.substr(0,4) == "OPEN" || commands.substr(0,4) == "open"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record:  database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            cout<<"Opening file: "<<filename<<" from table: "<<tablename<<".......\n";
+            #ifdef _WIN32
+                std::string commands = "start \"\" \"" + trgtPath + "\"";
+                system(commands.c_str());
+            #else
+                std::string commands = "xdg-open \"" + trgtPath + "\"";
+                system(commands.c_str());
+            #endif
+            cout<<"Succesfully found and opened file: "<<filename<<" from table: "<<tablename<<"\n";    
+        }
+        else if(commands.substr(0,4) == "EDIT" || commands.substr(0,4) == "edit"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename,filename;
+            ss >> keyword >> tablename >> filename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+
+            bool found = false;
+            std::string trgtPath;
+            for(const auto& record: database[tablename]){
+                if(record.fileName == filename){
+                    trgtPath = record.filePath;
+                    found =true;
+                    break;
+                }
+            }
+            if(!found){
+                cout<<"FILE NOT FOUND IN TABLE "<<tablename<<"\n";
+                continue;
+            }
+            std::string command = "code \"" + trgtPath + "\"";
+            system(command.c_str());
         }
         else if(commands.substr(0,10) == "FIND WHERE" || commands.substr(0,10) == "find where"){
             std::stringstream ss(commands);
@@ -516,7 +689,7 @@ int main(){
                     newRecord.filePath = entry.path().string();
                     newRecord.fileType = newRecord.getFileExtension(newRecord.fileName);
                     newRecord.fileSize = newRecord.getFileSize(newRecord.filePath);
-                    newRecord.dataAdded = "2024-01-01";
+                    newRecord.dataAdded = getCurrentDate();
                     database[tablename].push_back(newRecord);
                     addedCount++;
                 }
