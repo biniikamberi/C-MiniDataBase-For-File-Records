@@ -62,8 +62,10 @@ void help(){
     <<"#ADD -adds a file to Database,ADD [tablename] [_____.(musthaveExtension)]\n"
     <<"#SHOW TABLES -shows all tables in the DataBase\n"
     <<"#SHOW ALL -shows all data to availabe Database,SHOW ALL [tablename]\n"
+    <<"#SORT -sorts a table by a field, SORT [tablename] [field(ex, filename,filetype,etc)] [ASC|DESC]\n"
     <<"#VIEW -views a file inside the Database,VIEW [tablename] [filename]\n"
     <<"OPEN -opens a file inside the Database,OPEN [tablename] [filename]\n"
+    <<"#COUNT -counts the number of files inside a table,COUNT [tablename]\n"
     <<"EDIT -Edits/Opens a file inside The VSCODE EDITOR,EDIT [tablename] [filename] --MAYBE IN THE FUTURE I WILL UPDATE IT FOR ANY IDE BUT FOR NOW IT'S JUST FOR VSCODE\n"
     <<"#FIND && |FIND WHERE -Find if a file is in Database,Can be used Very Flexilibile like an if Statement\nFIND WHERE [tablename] [field(ex, filename,filetype,etc) [operation] [value(MUST  BE INT)]]\n"
     <<"#EXIT SAVE -Saves The Data in a .txt file extension\n"
@@ -117,7 +119,7 @@ while(std::getline(inFile, line)){
     }
 }
 }
-
+#include <algorithm>
 std::string getCurrentDate(){
     std::time_t now = time(0);
     tm* localTime = std::localtime(&now);
@@ -187,6 +189,29 @@ std::string getDefaultContent(const std::string& extension){
     else if(extension == "epub")return "This is a new EPUB e-book file.\n";
     else if(extension == "mobi")return "This is a new MOBI e-book file.\n";
     else if(extension == "azw3")return "This is a new AZW3 e-book file.\n";
+    else if(extension == "flac")return "This is a new FLAC audio file.\n";
+    else if(extension == "mp3")return "This is a new MP3 audio file.\n";
+    else if(extension == "wav")return "This is a new WAV audio file.\n";
+    else if(extension == "ogg")return "This is a new OGG audio file.\n";
+    else if(extension == "mp4")return "This is a new MP4 video file.\n";
+    else if(extension == "avi")return "This is a new AVI video file.\n";
+    else if(extension == "mkv")return "This is a new MKV video file.\n";
+    else if(extension == "mov")return "This is a new MOV video file.\n";
+    else if(extension == "wmv")return "This is a new WMV video file.\n";
+    else if(extension == "webm")return "This is a new WebM video file.\n";
+    else if(extension == "flv")return "This is a new FLV video file.\n";
+    else if(extension == "m4v")return "This is a new M4V video file.\n";
+    else if(extension == "3gp")return "This is a new 3GP video file.\n";
+    else if(extension == "ts")return "This is a new TS video file.\n";
+    else if(extension == "vob")return "This is a new VOB video file.\n";
+    else if(extension == "iso")return "This is a new ISO disk image file.\n";
+    else if(extension == "img")return "This is a new IMG disk image file.\n";
+    else if(extension == "bin")return "This is a new BIN binary file.\n";
+    else if(extension == "cue")return "This is a new CUE disk image file.\n";
+    else if(extension == "mdf")return "This is a new MDF disk image file.\n";
+    else if(extension == "mds")return "This is a new MDS disk image file.\n";
+    else if(extension == "toast")return "This is a new TOAST disk image file.\n";
+    else if(extension == "dmg")return "This is a new DMG disk image file.\n";
     return " ";
 }
 
@@ -349,6 +374,100 @@ int main(){
             inFile.close();
             cout<<"-------------\n";
         }
+        else if(commands.substr(0,4) == "SORT" || commands.substr(0,4) == "sort"){
+            std::stringstream ss(commands);
+            std::string keyword, tablename, by, field,order;
+            ss >> keyword >> tablename >> by >> field >> order;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            if(by != "BY" && by != "by"){
+                cout<<"INVALID SYNTAX!\n";
+                continue;
+            }
+            auto& table = database[tablename];
+            bool desecding = (order == "DESC" || order == "desc");
+              std::sort(table.begin(), table.end(), [&](const FileRecord& a, const FileRecord& b) -> bool {
+                bool result = false;
+                if(field == "FILENAME" || field == "filename"){
+                    result = a.fileName < b.fileName;
+                }
+                else if(field == "FILETYPE" || field == "filetype"){
+                    result = a.fileType < b.fileType;
+                }
+                else if(field == "SIZE" || field == "size"){
+                    result = a.fileSize < b.fileSize;
+                }
+                else if(field == "DATEADDED" || field == "dateadded"){
+                    result = a.dataAdded < b.dataAdded;
+                }
+                return desecding ? !result : result;
+              });
+               cout << "Sorted table " << tablename << " by " << field << (desecding ? " (descending)" : " (ascending)") << "\n";
+    }
+        else if(commands.substr(0,11) == "COUNT WHERE" || commands.substr(0,11) == "count where"){
+            std::stringstream ss(commands);
+            std::string keyword1, keyword2, tableName;
+            ss >> keyword1 >> keyword2 >> tableName;
+
+            if(database.find(tableName) == database.end()){
+                cout << "No such table: " << tableName << "\n";
+                continue;
+            }
+            std::vector<std::string> tokens;
+            std::string tok;
+            while(ss >> tok){
+                tokens.push_back(tok);
+            }
+            if(tokens.size() < 3 || (tokens.size() - 3) % 4 != 0){
+                cout <<"INVALID `WHERE` SYNTAX\n";
+                continue;
+            }
+            bool useAnd = true;
+            for(size_t i = 3; i < tokens.size(); i+=4){
+                std::string combinator = tokens[i];
+                if(combinator == "AND" || combinator == "and") useAnd = true;
+                else if(combinator == "OR" || combinator == "or") useAnd = false;
+            }
+            auto evalCond = [&](const FileRecord& record,const std::string& field
+            ,const std::string& op, std::string& value) -> bool{
+                if(field == "FILETYPE" || field == "filetype"){
+                    return op == "==" ? (record.fileType == value) : false;
+                }
+                else if(field == "FILENAME" ||field == "filename"){
+                    return op == "==" ? (record.fileName == value) : false;
+                }
+                else if(field == "SIZE" || field == "size"){
+                    long long v = std::stoll(value);
+                    if(op == "==") return record.fileSize == v;
+                    else if(op == ">") return record.fileSize > v;
+                    else if(op == "<") return record.fileSize < v;
+                }
+                return false;
+            };
+            int count = 0;
+            for(const auto& record: database[tableName]){
+                bool  result = evalCond(record,tokens[0],tokens[1],tokens[2]);
+                for(size_t i = 3; i + 3 < tokens.size(); i+=4){
+                    bool nextResult = evalCond(record,tokens[i+1],tokens[i+2],tokens[i+3]);
+                    if(useAnd) result = result && nextResult;
+                    else result = result || nextResult;
+                }
+                if(result) count++;
+            }
+            cout << "Count of files in table " << tableName << " matching the condition: " << count << "\n";
+        }
+        else if(commands.substr(0,5) == "COUNT" || commands.substr(0,5) == "count"){
+            std::stringstream ss(commands);
+            std::string keyword,tablename;
+            ss >> keyword >> tablename;
+            if(database.find(tablename) == database.end()){
+                cout<<"NO SUCH TABLE "<<tablename<<" FOUND!\n";
+                continue;
+            }
+            cout<<"Number of files in table "<<tablename<<": "<<database[tablename].size()<<"\n";
+        }
         else if(commands.substr(0,4) == "OPEN" || commands.substr(0,4) == "open"){
             std::stringstream ss(commands);
             std::string keyword,tablename,filename;
@@ -372,11 +491,11 @@ int main(){
             }
             cout<<"Opening file: "<<filename<<" from table: "<<tablename<<".......\n";
             #ifdef _WIN32
-                std::string commands = "start \"\" \"" + trgtPath + "\"";
-                system(commands.c_str());
+                std::string command = "start \"\" \"" + trgtPath + "\"";
+                system(command.c_str());
             #else
-                std::string commands = "xdg-open \"" + trgtPath + "\"";
-                system(commands.c_str());
+                std::string command = "xdg-open \"" + trgtPath + "\"";
+                system(command.c_str());
             #endif
             cout<<"Succesfully found and opened file: "<<filename<<" from table: "<<tablename<<"\n";    
         }
@@ -581,6 +700,96 @@ int main(){
                 cout << "FILE NOT FOUND\n";
             }
         }
+        else if(commands.substr(0,12) == "UPDATE WHERE" || commands.substr(0,12) == "update where"){
+            std::stringstream ss(commands);
+            std::string keyword1, keyword2, tablename;
+            ss >> keyword1 >> keyword2 >> tablename;
+
+            if(database.find(tablename) == database.end()){
+                cout << "NO SUCH TABLE " << tablename << " FOUND!\n";
+                continue;
+                }
+
+            std::vector<std::string> allTokens;
+            std::string tok;
+            while(ss >> tok){
+                allTokens.push_back(tok);
+            }
+        int setIndex = -1;
+        for(size_t i = 0; i < allTokens.size(); i++){
+            if(allTokens[i] == "SET" || allTokens[i] == "set"){
+                setIndex = (int)i;
+                break;
+                    }
+            }
+        if(setIndex == -1 || setIndex + 2 >= (int)allTokens.size()){
+                cout << "INVALID SYNTAX. Use: UPDATE WHERE <table> <conditions> SET <field> <value>\n";
+                continue;
+            }
+
+            std::vector<std::string> tokens(allTokens.begin(), allTokens.begin() + setIndex);
+            std::string newField = allTokens[setIndex + 1];
+            std::string newValue = allTokens[setIndex + 2];
+
+            if(tokens.size() < 3 || (tokens.size() - 3) % 4 != 0){
+            cout << "INVALID `WHERE` SYNTAX!\n";
+            continue;
+            }
+
+        bool useAnd = true;
+        for(size_t i = 3; i < tokens.size(); i += 4){
+            std::string combinator = tokens[i];
+                if(combinator == "AND" || combinator == "and") useAnd = true;
+                else if(combinator == "OR" || combinator == "or") useAnd = false;
+            }
+
+            auto evalCond = [](const FileRecord& record, const std::string& field, const std::string& op, const std::string& value) -> bool{
+                if(field == "FILETYPE" || field == "filetype"){
+                    return op == "==" ? (record.fileType == value) : false;
+                }
+                else if(field == "FILENAME" || field == "filename"){
+                    return op == "==" ? (record.fileName == value) : false;
+                }
+            else if(field == "SIZE" || field == "size"){
+                long long v = std::stoll(value);
+                if(op == "==") return record.fileSize == v;
+                    else if(op == ">") return record.fileSize > v;
+                    else if(op == "<") return record.fileSize < v;
+                    }
+                return false;
+            };
+
+        auto matchesAll = [&](const FileRecord& record) -> bool {
+            bool result = evalCond(record, tokens[0], tokens[1], tokens[2]);
+            for(size_t i = 3; i + 3 < tokens.size(); i += 4){
+                bool nextResult = evalCond(record, tokens[i+1], tokens[i+2], tokens[i+3]);
+                if(useAnd) result = result && nextResult;
+                    else result = result || nextResult;
+                    }
+            return result;
+            };
+
+        int updatedCount = 0;
+        for(auto& record : database[tablename]){
+            if(matchesAll(record)){
+                    if(newField == "FILETYPE" || newField == "filetype"){
+                        record.fileType = newValue;
+                    }
+                    else if(newField == "FILENAME" || newField == "filename"){
+                        record.fileName = newValue;
+                        }
+                    else if(newField == "FILEPATH" || newField == "filepath"){
+                        record.filePath = newValue;
+                        }
+                    else{
+                    cout << "UNKNOWN FIELD TO SET: " << newField << "\n";
+                    continue;
+                    }
+                    updatedCount++;
+                }
+            }
+        cout << "Updated " << updatedCount << " record(s) in " << tablename << "\n";
+        }
         else if(commands.substr(0,6) == "UPDATE" || commands.substr(0,6) == "update"){
             std::stringstream ss(commands);
             std::string keyword,tablename,filename,field,newvalue;
@@ -634,7 +843,6 @@ int main(){
                 continue;
             }
         }
-        //prob scan where
         else if(commands.substr(0,10) == "SCAN WHERE" || commands.substr(0,10) == "scan where"){
             std::stringstream ss(commands);
             std::string keyword1, keyword2, tablename, dirpath;
@@ -647,24 +855,76 @@ int main(){
             if(!dirpath.empty() && dirpath[0] == ' '){
                 dirpath = dirpath.substr(1);
             }
-            if(!fs::exists(dirpath) || !fs::is_directory(dirpath)){
-                cout<<"INVALID DIRECTORY PATH: "<<dirpath<<"\n";
-                continue;
-            }//Implementing the scan where logic is
+    
+            std::stringstream dirss(dirpath);
+            std::string realDirPath;
+            dirss >> realDirPath;
             std::vector<std::string> tokens;
             std::string tok;
-            while(ss >> tok){
+
+            while(dirss >> tok){
                 tokens.push_back(tok);
             }
-            bool useAnd = true;
-            if(tokens.size() >= 3 && (tokens.size() - 3) % 4 == 0){
-                for(size_t i = 3;i < tokens.size(); i+=4){
-                    std::string combinator = tokens[i];
-                    if(combinator == "AND" || combinator == "and") useAnd = true;
-                    else if(combinator == "OR" || combinator == "or") useAnd =false;
+            if(!fs::exists(realDirPath) || !fs::is_directory(realDirPath)){
+                cout<<"INVALID DIRECTORY PATH: "<<realDirPath<<"\n";
+                continue;
+            }
+            if(tokens.size() < 3 || (tokens.size() - 3) % 4 != 0){
+                cout<<"INVALID `WHERE` SYNTAX!\n";
+                continue;
+            }
+            bool useAnd =true;
+            for(size_t i = 3; i < tokens.size(); i+=4){
+                std::string combinator = tokens[i];
+                if(combinator == "AND" || combinator == "and") useAnd = true;
+                else if(combinator == "OR" || combinator == "or") useAnd = false;
+            }
+
+            auto evalCond = [](const std::string& fname, const std::string& ftype, long long fsize,
+                        const std::string& field, const std::string& op, const std::string& value) -> bool{
+                            if(field == "FILETYPE" || field == "filetype"){
+                                return op == "==" ? (ftype == value) : false;
+                            }
+                            else if(field == "FILENAME" || field == "filename"){
+                                return op == "==" ? (fname == value) : false;
+                            }
+                            else if(field == "SIZE" || field == "size"){
+                                long long v = std::stoll(value);
+                                if(op == "==") return fsize == v;
+                                else if(op == ">") return fsize > v;
+                                else if(op == "<") return fsize < v;
+                            }
+                            return false;
+            };
+            unsigned int addedCount = 0;
+            for(const auto& entry: fs::directory_iterator(realDirPath)){
+                if(!entry.is_regular_file()){
+                    continue;
                 }
-            }//working on this
+                std::string fname = entry.path().filename().string();
+                FileRecord temp;
+                std::string ftype = temp.getFileExtension(fname);
+                std::string fullPath = entry.path().string();
+                long long fsize = temp.getFileSize(fullPath);
+                bool result = evalCond(fname, ftype, fsize, tokens[0], tokens[1], tokens[2]);
+                for(size_t i = 3; i+3 <tokens.size(); i+=4){
+                    bool nextResult = evalCond(fname, ftype, fsize, tokens[i+1], tokens[i+2], tokens[i+3]);
+                    if(useAnd) result = result && nextResult;
+                    else result = result || nextResult;
+                }
+                if(result){
+                    FileRecord newRecord;
+                    newRecord.fileName = fname;
+                    newRecord.filePath = entry.path().string();
+                    newRecord.fileType = ftype;
+                    newRecord.fileSize = fsize;
+                    newRecord.dataAdded = getCurrentDate();
+                    database[tablename].push_back(newRecord);
+                    addedCount++;
+            }
         }
+        cout<<"Scan and Added " << addedCount << " files to table " << tablename << "\n";
+    }
         else if(commands.substr(0,4) == "SCAN" || commands.substr(0,4) == "scan"){
             std::stringstream ss(commands);
             std::string keyword,tablename,dirpath;
